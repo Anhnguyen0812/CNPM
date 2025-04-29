@@ -1,0 +1,260 @@
+.book-ride-page {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.page-header h1 {
+  font-size: 28px;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.page-header p {
+  color: #666;
+  font-size: 16px;
+}
+
+.book-ride-container {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 20px;
+}
+
+/* Map container styling */
+.ride-map-container {
+  flex: 1;
+  height: 400px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+}
+
+.ride-form-container {
+  flex: 1;
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-group input[type="text"],
+.form-group input[type="datetime-local"],
+.form-group select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+/* Location input styling */
+.location-input-group {
+  display: flex;
+  gap: 10px;
+  position: relative;
+}
+
+.location-input-group input {
+  flex: 1;
+}
+
+.map-select-btn {
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 0 15px;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.map-select-btn:hover {
+  background-color: #e0e0e0;
+}
+
+/* Location suggestions dropdown */
+.location-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 250px;
+  overflow-y: auto;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  margin-top: 5px;
+}
+
+.suggestion-item {
+  padding: 10px 15px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+  transition: background-color 0.2s;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover {
+  background-color: #f5f5f5;
+}
+
+.suggestion-name {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 3px;
+}
+
+.suggestion-address {
+  font-size: 13px;
+  color: #777;
+}
+
+/* Ride type options */
+.ride-type-options {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.ride-type-option {
+  display: flex;
+  gap: 15px;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ride-type-option:hover {
+  border-color: #4CAF50;
+  background-color: #f9f9f9;
+}
+
+.ride-type-option input {
+  margin-top: 5px;
+}
+
+.ride-type-option div {
+  flex: 1;
+}
+
+.ride-type-option h4 {
+  margin: 0 0 8px 0;
+  color: #333;
+}
+
+.ride-type-option p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+/* Profile preferences */
+.profile-preferences {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.profile-preference-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 15px;
+  background-color: #f5f5f5;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.profile-preference-option:hover {
+  background-color: #e8f5e9;
+}
+
+/* Price estimate */
+.price-estimate {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  border-left: 4px solid #4CAF50;
+}
+
+.price-estimate h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 18px;
+}
+
+.price-estimate p {
+  margin: 5px 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.price-estimate .discount-note {
+  color: #4CAF50;
+}
+
+.price-estimate .price {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  margin: 10px 0;
+}
+
+/* Book ride button */
+.book-ride-btn {
+  display: block;
+  width: 100%;
+  padding: 15px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.book-ride-btn:hover {
+  background-color: #3b9d40;
+}
+
+/* Responsive layout */
+@media (min-width: 768px) {
+  .book-ride-container {
+    flex-direction: row;
+  }
+  
+  .ride-map-container {
+    height: auto;
+    min-height: 600px;
+  }
+}
