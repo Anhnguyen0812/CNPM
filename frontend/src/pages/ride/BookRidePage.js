@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import axios from 'axios';
 import 'leaflet/dist/leaflet.css';
@@ -240,49 +240,68 @@ const BookRidePage = () => {
     };
   }, []);
 
-  // Search for locations using Nominatim API (OpenStreetMap)
+  // Search for locations using Nominatim API with performance optimizations
+  const searchLocationsCache = {};
+
   const searchLocations = async (query) => {
     if (!query || query.length < 3) return [];
     
+    const cacheKey = query.toLowerCase();
+    
+    // Return cached results if available
+    if (searchLocationsCache[cacheKey]) {
+      return searchLocationsCache[cacheKey];
+    }
+    
     try {
-      // Sử dụng Nominatim API của OpenStreetMap
+      // First check local data for matches before making API call
+      const localMatches = suggestedLocations.filter(
+        location => location.name.toLowerCase().includes(cacheKey) || 
+                   location.address.toLowerCase().includes(cacheKey)
+      );
+      
+      // If we have enough local matches, use them without API call
+      if (localMatches.length >= 3) {
+        searchLocationsCache[cacheKey] = localMatches;
+        return localMatches;
+      }
+      
+      // Otherwise, make API call
       const response = await axios.get(`https://nominatim.openstreetmap.org/search`, {
         params: {
           q: query,
           format: 'json', 
           addressdetails: 1,
-          limit: 10,
-          countrycodes: 'vn', // Giới hạn tìm kiếm ở Việt Nam
-          'accept-language': 'vi',  // Ưu tiên kết quả tiếng Việt
+          limit: 5,
+          countrycodes: 'vn',
+          'accept-language': 'vi',
           bounded: 1,
-          viewbox: '102.14,8.18,109.46,23.39', // Phạm vi bao phủ toàn Việt Nam
+          viewbox: '102.14,8.18,109.46,23.39',
         },
         headers: {
-          'User-Agent': 'RideSharingApp/1.0' // Nominatim yêu cầu định danh nguồn gọi API
+          'User-Agent': 'RideSharingApp/1.0'
         }
       });
 
-      return response.data.map(location => {
-        // Xử lý địa chỉ để chuẩn hóa và định dạng lại cho người dùng Việt Nam
-        const nameParts = location.display_name.split(',');
-        const mainName = nameParts[0].trim();
-        
-        // Lọc bỏ các phần không cần thiết của địa chỉ và tạo địa chỉ ngắn gọn hơn
-        const shortenedAddress = nameParts
-          .slice(1, Math.min(nameParts.length, 4)) // Chỉ lấy tối đa 3 phần tiếp theo
-          .map(part => part.trim())
-          .join(', ');
-          
+      const results = response.data.map(location => {
         return {
-          name: mainName,
-          address: `${mainName}, ${shortenedAddress}`,
+          name: location.display_name,
+          address: location.display_name,
           fullAddress: location.display_name,
           coords: [parseFloat(location.lat), parseFloat(location.lon)]
         };
       });
+      
+      // Cache the results
+      searchLocationsCache[cacheKey] = results;
+      return results;
     } catch (error) {
       console.error('Error searching for locations:', error);
-      return [];
+      // Fallback to local data on error
+      return suggestedLocations.filter(
+        location => location.name.toLowerCase().includes(cacheKey) || 
+                   location.address.toLowerCase().includes(cacheKey)
+      );
     }
   };
 
@@ -326,16 +345,21 @@ const BookRidePage = () => {
               <Marker 
                 position={pickupPosition}
                 icon={new L.Icon({
-                  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
                   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                  iconSize: [25, 41],
-                  iconAnchor: [12, 41],
+                  iconSize: [30, 45],
+                  iconAnchor: [15, 45],
                   popupAnchor: [1, -34],
-                  shadowSize: [41, 41]
+                  shadowSize: [41, 41],
+                  className: 'pickup-marker-icon'
                 })}
-
               >
-                <Popup>Điểm đón</Popup>
+                <Popup>
+                  <div className="custom-popup">
+                    <strong>Điểm đón</strong>
+                    <p>Tọa độ: {pickupPosition.lat.toFixed(6)}, {pickupPosition.lng.toFixed(6)}</p>
+                  </div>
+                </Popup>
               </Marker>
             )}
 
@@ -345,14 +369,33 @@ const BookRidePage = () => {
                 icon={new L.Icon({
                   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
                   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                  iconSize: [25, 41],
-                  iconAnchor: [12, 41],
+                  iconSize: [30, 45],
+                  iconAnchor: [15, 45],
                   popupAnchor: [1, -34],
-                  shadowSize: [41, 41]
+                  shadowSize: [41, 41],
+                  className: 'destination-marker-icon'
                 })}
               >
-                <Popup>Điểm đến</Popup>
+                <Popup>
+                  <div className="custom-popup">
+                    <strong>Điểm đến</strong>
+                    <p>Tọa độ: {destinationPosition.lat.toFixed(6)}, {destinationPosition.lng.toFixed(6)}</p>
+                  </div>
+                </Popup>
               </Marker>
+            )}
+            
+            {pickupPosition && destinationPosition && (
+              <Polyline 
+                positions={[
+                  [pickupPosition.lat, pickupPosition.lng],
+                  [destinationPosition.lat, destinationPosition.lng]
+                ]}
+                color="#4e4376"
+                weight={4}
+                opacity={0.7}
+                dashArray="10, 10"
+              />
             )}
           </MapContainer>
         </div>

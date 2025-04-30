@@ -7,10 +7,9 @@ services:
     container_name: ride-sharing-mysql
     restart: unless-stoppeds
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_ROOT_PASSWORD: 6574839201Phanh
       MYSQL_DATABASE: ride_sharing
-      MYSQL_USER: ride_sharing_user
-      MYSQL_PASSWORD: ride_sharing_password
+      MYSQL_USER: root
     ports:
       - "3306:3306"
     volumes:
