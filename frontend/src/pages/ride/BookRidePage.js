@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { toast } from 'react-toastify';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import axios from 'axios';
 import 'leaflet/dist/leaflet.css';
+import api from '../../services/api.service';
 import './BookRidePage.css';
 
 // Fix for default marker icons in Leaflet with React
@@ -36,103 +39,56 @@ const LocationMarker = ({ position, setPosition, markerType }) => {
         popupAnchor: [1, -34],
         shadowSize: [41, 41]
       })}
-
     >
-      <Popup>{markerType === 'pickup' ? 'Điểm đón' : 'Điểm đến'}</Popup>
+      <Popup>{markerType === 'pickup' ? 'Pickup Point' : 'Drop-off Point'}</Popup>
     </Marker> : null;
 };
 
 const BookRidePage = () => {
-  const { currentUser: user } = useAuth();
-  const [rideType, setRideType] = useState('activity');
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+  const [rideType, setRideType] = useState('standard');
   const [pickupLocation, setPickupLocation] = useState('');
-  const [destination, setDestination] = useState('');
-  const [departureTime, setDepartureTime] = useState('');
-  const [estimatedPrice, setEstimatedPrice] = useState(null);
-  const [preferences, setPreferences] = useState({
-    gender: '',
-    ageGroup: '',
-    smoking: false,
-    pets: false,
-    music: false,
-    conversation: false
-  });
-  
-  // Location suggestions state
-  const [pickupSuggestions, setPickupSuggestions] = useState([]);
-  const [destinationSuggestions, setDestinationSuggestions] = useState([]);
-  const [showPickupSuggestions, setShowPickupSuggestions] = useState(false);
-  const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
+  const [dropoffLocation, setDropoffLocation] = useState('');
+  const [pickupTime, setPickupTime] = useState('');
+  const [numberOfPassengers, setNumberOfPassengers] = useState(1);
+  const [loadingEstimate, setLoadingEstimate] = useState(false);
+  const [estimateDetails, setEstimateDetails] = useState(null);
+  const [bookingInProgress, setBookingInProgress] = useState(false);
   
   // Map state
   const [mapCenter, setMapCenter] = useState([21.0278, 105.8342]); // Hanoi, Vietnam as default
   const [zoom, setZoom] = useState(13);
   const [pickupPosition, setPickupPosition] = useState(null);
-  const [destinationPosition, setDestinationPosition] = useState(null);
-  const [selectingLocation, setSelectingLocation] = useState(null); // 'pickup', 'destination', or null
+  const [dropoffPosition, setDropoffPosition] = useState(null);
+  const [selectingLocation, setSelectingLocation] = useState(null); // 'pickup', 'dropoff', or null
+  
+  // Trajectory-based state
+  const [userTrajectories, setUserTrajectories] = useState([]);
+  const [selectedTrajectory, setSelectedTrajectory] = useState(null);
+  const [compatibleDrivers, setCompatibleDrivers] = useState([]);
+  const [selectedDriver, setSelectedDriver] = useState(null);
+  const [userPreferences, setUserPreferences] = useState({
+    smoking: false,
+    pets: false,
+    music: false,
+    conversation: false,
+    gender_preference: '',
+    min_rating: 4.0
+  });
+  const [loading, setLoading] = useState(false);
   
   const mapRef = useRef(null);
-  const pickupInputRef = useRef(null);
-  const destinationInputRef = useRef(null);
 
-  // Sample location data for suggestions
-  // In a real app, this would come from an API call to a geocoding service
-  const suggestedLocations = [
-    { name: "Đại học Bách Khoa Hà Nội", address: "Số 1 Đại Cồ Việt, Hai Bà Trưng, Hà Nội", coords: [21.0072, 105.8427] },
-    { name: "Hồ Hoàn Kiếm", address: "Hoàn Kiếm, Hà Nội", coords: [21.0287, 105.8524] },
-    { name: "Lăng Chủ tịch Hồ Chí Minh", address: "2 Hùng Vương, Điện Bàn, Ba Đình, Hà Nội", coords: [21.0370, 105.8348] },
-    { name: "Đại học Quốc gia Hà Nội", address: "144 Xuân Thủy, Cầu Giấy, Hà Nội", coords: [21.0373, 105.7828] },
-    { name: "Chợ Đồng Xuân", address: "Đồng Xuân, Hoàn Kiếm, Hà Nội", coords: [21.0386, 105.8494] },
-    { name: "AEON Mall Long Biên", address: "27 Cổ Linh, Long Biên, Hà Nội", coords: [21.0141, 105.9113] },
-    { name: "Keangnam Hanoi Landmark Tower", address: "Phạm Hùng, Cầu Giấy, Hà Nội", coords: [21.0166, 105.7837] },
-    { name: "Bệnh viện Bạch Mai", address: "78 Đường Giải Phóng, Phương Mai, Đống Đa, Hà Nội", coords: [20.9999, 105.8411] },
-    { name: "Công viên Thống Nhất", address: "Đường Trần Nhân Tông, Hai Bà Trưng, Hà Nội", coords: [21.0125, 105.8469] },
-    { name: "Sân vận động Mỹ Đình", address: "Lê Đức Thọ, Mỹ Đình, Nam Từ Liêm, Hà Nội", coords: [21.0203, 105.7637] }
-  ];
-
-  // Calculate price estimate based on pickup and destination
-  useEffect(() => {
-    if (pickupLocation && destination) {
-      // This would normally call an API to get an estimate
-      // For now, we'll simulate a price calculation
-      const basePrice = Math.floor(Math.random() * 50) + 50;
-      const discount = rideType === 'profile' ? 0.1 : 0;
-      
-      setEstimatedPrice({
-        basePrice,
-        discount,
-        finalPrice: basePrice * (1 - discount)
-      });
-    }
-  }, [pickupLocation, destination, rideType]);
-
-  const handlePreferenceChange = (e) => {
-    const { name, checked, value, type } = e.target;
-    setPreferences({
-      ...preferences,
-      [name]: type === 'checkbox' ? checked : value
-    });
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    // In a real application, this would call an API to book the ride
-    alert('Ride booking request submitted! You will be matched with a driver soon.');
-    
-    // Log the data that would be sent to the API
-    console.log({
-      rideType,
-      pickupLocation,
-      destination,
-      departureTime,
-      preferences: rideType === 'profile' ? preferences : null,
-      userId: user?.id
-    });
+  // Handle ride type selection
+  const handleRideTypeChange = (type) => {
+    setRideType(type);
+    // Reset estimate when changing ride type
+    setEstimateDetails(null);
   };
 
   // Function to handle location selection from map
-  const handleMapSelection = (type) => {
+  const handleLocationSelect = (type) => {
     setSelectingLocation(type);
     
     // If we have the map reference, fly to the current center
@@ -151,473 +107,690 @@ const BookRidePage = () => {
   }, [pickupPosition]);
 
   useEffect(() => {
-    if (destinationPosition) {
+    if (dropoffPosition) {
       // In a real app, you would use a geocoding service to get address from coordinates
-      setDestination(`${destinationPosition.lat.toFixed(6)}, ${destinationPosition.lng.toFixed(6)}`);
+      setDropoffLocation(`${dropoffPosition.lat.toFixed(6)}, ${dropoffPosition.lng.toFixed(6)}`);
     }
-  }, [destinationPosition]);
+  }, [dropoffPosition]);
 
-  // Handle location input change and show suggestions
-  const handlePickupInputChange = async (e) => {
-    const value = e.target.value;
-    setPickupLocation(value);
+  // Save selected location
+  const handleSaveLocation = () => {
+    if (selectingLocation === 'pickup' && pickupPosition) {
+      setPickupLocation(`${pickupPosition.lat.toFixed(6)}, ${pickupPosition.lng.toFixed(6)}`);
+    } else if (selectingLocation === 'dropoff' && dropoffPosition) {
+      setDropoffLocation(`${dropoffPosition.lat.toFixed(6)}, ${dropoffPosition.lng.toFixed(6)}`);
+    }
     
-    if (value.length > 2) {
-      const filteredSuggestions = suggestedLocations.filter(
-        location => location.name.toLowerCase().includes(value.toLowerCase()) || 
-                   location.address.toLowerCase().includes(value.toLowerCase())
-      );
-      setPickupSuggestions(filteredSuggestions);
-      setShowPickupSuggestions(true);
-
-      // Fetch locations from Nominatim API
-      const apiSuggestions = await searchLocations(value);
-      setPickupSuggestions(apiSuggestions);
-      setShowPickupSuggestions(true);
-    } else {
-      setShowPickupSuggestions(false);
-    }
+    setSelectingLocation(null);
   };
 
-  const handleDestinationInputChange = async (e) => {
-    const value = e.target.value;
-    setDestination(value);
-    
-    if (value.length > 2) {
-      const filteredSuggestions = suggestedLocations.filter(
-        location => location.name.toLowerCase().includes(value.toLowerCase()) || 
-                   location.address.toLowerCase().includes(value.toLowerCase())
-      );
-      setDestinationSuggestions(filteredSuggestions);
-      setShowDestinationSuggestions(true);
+  // Get ride estimate
+  const handleGetEstimate = async (e) => {
+    e.preventDefault();
 
-      // Fetch locations from Nominatim API
-      const apiSuggestions = await searchLocations(value);
-      setDestinationSuggestions(apiSuggestions);
-      setShowDestinationSuggestions(true);
-    } else {
-      setShowDestinationSuggestions(false);
+    if (!pickupLocation || !dropoffLocation) {
+      toast.error('Please enter both pickup and dropoff locations');
+      return;
     }
-  };
 
-  // Handle suggestion selection
-  const handlePickupSuggestionClick = (suggestion) => {
-    setPickupLocation(suggestion.name);
-    setPickupPosition({ lat: suggestion.coords[0], lng: suggestion.coords[1] });
-    setShowPickupSuggestions(false);
-    
-    // Update map to show the selection
-    if (mapRef.current) {
-      mapRef.current.flyTo(suggestion.coords, 15);
-    }
-  };
-
-  const handleDestinationSuggestionClick = (suggestion) => {
-    setDestination(suggestion.name);
-    setDestinationPosition({ lat: suggestion.coords[0], lng: suggestion.coords[1] });
-    setShowDestinationSuggestions(false);
-    
-    // Update map to show the selection
-    if (mapRef.current) {
-      mapRef.current.flyTo(suggestion.coords, 15);
-    }
-  };
-
-  // Close suggestions when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (pickupInputRef.current && !pickupInputRef.current.contains(event.target)) {
-        setShowPickupSuggestions(false);
-      }
-      if (destinationInputRef.current && !destinationInputRef.current.contains(event.target)) {
-        setShowDestinationSuggestions(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  // Search for locations using Nominatim API with performance optimizations
-  const searchLocationsCache = {};
-
-  const searchLocations = async (query) => {
-    if (!query || query.length < 3) return [];
-    
-    const cacheKey = query.toLowerCase();
-    
-    // Return cached results if available
-    if (searchLocationsCache[cacheKey]) {
-      return searchLocationsCache[cacheKey];
-    }
-    
     try {
-      // First check local data for matches before making API call
-      const localMatches = suggestedLocations.filter(
-        location => location.name.toLowerCase().includes(cacheKey) || 
-                   location.address.toLowerCase().includes(cacheKey)
-      );
-      
-      // If we have enough local matches, use them without API call
-      if (localMatches.length >= 3) {
-        searchLocationsCache[cacheKey] = localMatches;
-        return localMatches;
-      }
-      
-      // Otherwise, make API call
-      const response = await axios.get(`https://nominatim.openstreetmap.org/search`, {
-        params: {
-          q: query,
-          format: 'json', 
-          addressdetails: 1,
-          limit: 5,
-          countrycodes: 'vn',
-          'accept-language': 'vi',
-          bounded: 1,
-          viewbox: '102.14,8.18,109.46,23.39',
-        },
-        headers: {
-          'User-Agent': 'RideSharingApp/1.0'
-        }
+      setLoadingEstimate(true);
+      const response = await api.post('/rides/estimate', {
+        pickup_location: pickupLocation,
+        dropoff_location: dropoffLocation,
+        number_of_passengers: numberOfPassengers,
+        ride_type: rideType
       });
 
-      const results = response.data.map(location => {
-        return {
-          name: location.display_name,
-          address: location.display_name,
-          fullAddress: location.display_name,
-          coords: [parseFloat(location.lat), parseFloat(location.lon)]
-        };
+      setEstimateDetails(response.data.data);
+      setLoadingEstimate(false);
+    } catch (error) {
+      console.error('Error getting ride estimate:', error);
+      toast.error('Failed to get ride estimate. Please try again.');
+      setLoadingEstimate(false);
+    }
+  };
+
+  // Book ride
+  const handleBookRide = async () => {
+    if (!estimateDetails) {
+      toast.error('Please get an estimate first');
+      return;
+    }
+
+    if (!pickupTime) {
+      toast.error('Please select a pickup time');
+      return;
+    }
+
+    try {
+      setBookingInProgress(true);
+      const response = await api.post('/rides', {
+        customer_id: currentUser.id,
+        pickup_location: pickupLocation,
+        dropoff_location: dropoffLocation,
+        pickup_time: pickupTime,
+        number_of_passengers: numberOfPassengers,
+        distance: estimateDetails.distance,
+        duration: estimateDetails.duration,
+        price: estimateDetails.price,
+        ride_type: rideType
+      });
+
+      toast.success('Ride booked successfully!');
+      setBookingInProgress(false);
+
+      // Redirect to ride details page or show confirmation
+      navigate(`/rides/${response.data.data.id}`);
+    } catch (error) {
+      console.error('Error booking ride:', error);
+      toast.error('Failed to book ride. Please try again.');
+      setBookingInProgress(false);
+    }
+  };
+
+  // Fetch user trajectories for trajectory-based matching
+  useEffect(() => {
+    if (rideType === 'trajectory-based' && currentUser) {
+      const fetchTrajectories = async () => {
+        try {
+          setLoading(true);
+          const response = await api.get('/trajectory/trajectories');
+          setUserTrajectories(response.data.data);
+          setLoading(false);
+        } catch (error) {
+          console.error('Error fetching trajectories:', error);
+          toast.error('Failed to load your saved routes');
+          setLoading(false);
+        }
+      };
+      
+      fetchTrajectories();
+    }
+  }, [rideType, currentUser]);
+
+  // Fetch user preferences from profile
+  useEffect(() => {
+    if (rideType === 'trajectory-based' && currentUser) {
+      const fetchUserPreferences = async () => {
+        try {
+          const response = await api.get(`/users/profile/${currentUser.id}`);
+          if (response.data.data.preferences) {
+            try {
+              const preferences = JSON.parse(response.data.data.preferences);
+              setUserPreferences(preferences);
+            } catch (e) {
+              console.error('Error parsing preferences:', e);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching user preferences:', error);
+        }
+      };
+      
+      fetchUserPreferences();
+    }
+  }, [rideType, currentUser]);
+
+  // Handle trajectory selection
+  const handleTrajectorySelect = async (trajectoryId) => {
+    const trajectory = userTrajectories.find(t => t.id === parseInt(trajectoryId));
+    setSelectedTrajectory(trajectory);
+    
+    if (trajectory) {
+      setPickupPosition({
+        lat: parseFloat(trajectory.origin_latitude),
+        lng: parseFloat(trajectory.origin_longitude)
       });
       
-      // Cache the results
-      searchLocationsCache[cacheKey] = results;
-      return results;
+      setDropoffPosition({
+        lat: parseFloat(trajectory.destination_latitude),
+        lng: parseFloat(trajectory.destination_longitude)
+      });
+      
+      setPickupLocation(trajectory.origin_location);
+      setDropoffLocation(trajectory.destination_location);
+      
+      // If we have the map reference, adjust the view
+      if (mapRef.current) {
+        const bounds = L.latLngBounds(
+          [trajectory.origin_latitude, trajectory.origin_longitude],
+          [trajectory.destination_latitude, trajectory.destination_longitude]
+        );
+        mapRef.current.fitBounds(bounds);
+      }
+      
+      // Find compatible drivers
+      try {
+        setLoading(true);
+        const response = await api.post('/trajectory/matching', {
+          trajectory_id: trajectory.id,
+          preferences: userPreferences
+        });
+        
+        setCompatibleDrivers(response.data.data);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error finding compatible drivers:', error);
+        toast.error('Failed to find compatible drivers');
+        setLoading(false);
+      }
+    }
+  };
+
+  // Handle driver selection
+  const handleDriverSelect = (driverId) => {
+    const driver = compatibleDrivers.find(d => d.id === parseInt(driverId));
+    setSelectedDriver(driver);
+  };
+
+  // Book trajectory-based ride
+  const handleBookTrajectoryRide = async () => {
+    if (!selectedTrajectory || !selectedDriver) {
+      toast.error('Please select a route and a compatible driver');
+      return;
+    }
+
+    if (!pickupTime) {
+      toast.error('Please select a pickup time');
+      return;
+    }
+
+    try {
+      setBookingInProgress(true);
+      const response = await api.post('/rides', {
+        customer_id: currentUser.id,
+        driver_id: selectedDriver.id,
+        pickup_location: pickupLocation,
+        dropoff_location: dropoffLocation,
+        pickup_time: pickupTime,
+        number_of_passengers: numberOfPassengers,
+        distance: selectedTrajectory.distance || 0,
+        duration: selectedTrajectory.duration || 0,
+        price: selectedDriver.price || 0,
+        ride_type: 'trajectory-based',
+        trajectory_id: selectedTrajectory.id
+      });
+
+      toast.success('Ride booked successfully!');
+      setBookingInProgress(false);
+      navigate(`/rides/${response.data.data.id}`);
     } catch (error) {
-      console.error('Error searching for locations:', error);
-      // Fallback to local data on error
-      return suggestedLocations.filter(
-        location => location.name.toLowerCase().includes(cacheKey) || 
-                   location.address.toLowerCase().includes(cacheKey)
-      );
+      console.error('Error booking trajectory-based ride:', error);
+      toast.error('Failed to book ride. Please try again.');
+      setBookingInProgress(false);
     }
   };
 
   return (
     <div className="book-ride-page">
       <div className="page-header">
-        <h1>Đặt chuyến xe</h1>
-        <p>Chọn địa điểm và tùy chỉnh chuyến đi của bạn</p>
+        <h1>Book a Ride</h1>
+        <p>Choose your ride type and enter your trip details</p>
       </div>
 
-      <div className="book-ride-container">
-        <div className="ride-map-container">
-          <MapContainer 
-            center={mapCenter} 
-            zoom={zoom} 
-            style={{ height: '100%', width: '100%' }}
-            whenCreated={(map) => { mapRef.current = map; }}
-          >
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-            />
+      <div className="booking-container">
+        <div className="ride-types-section">
+          <h2>Ride Types</h2>
+          <div className="ride-types">
+            <div 
+              className={`ride-type-card ${rideType === 'standard' ? 'selected' : ''}`}
+              onClick={() => handleRideTypeChange('standard')}
+            >
+              <div className="ride-type-icon">🚗</div>
+              <div className="ride-type-details">
+                <h3>Standard</h3>
+                <p>Regular ridesharing service</p>
+              </div>
+            </div>
             
-            {selectingLocation === 'pickup' && (
-              <LocationMarker 
-                position={pickupPosition} 
-                setPosition={setPickupPosition} 
-                markerType="pickup" 
-              />
-            )}
-
-            {selectingLocation === 'destination' && (
-              <LocationMarker 
-                position={destinationPosition} 
-                setPosition={setDestinationPosition} 
-                markerType="destination" 
-              />
-            )}
-
-            {(pickupPosition && selectingLocation !== 'pickup') && (
-              <Marker 
-                position={pickupPosition}
-                icon={new L.Icon({
-                  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-                  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                  iconSize: [30, 45],
-                  iconAnchor: [15, 45],
-                  popupAnchor: [1, -34],
-                  shadowSize: [41, 41],
-                  className: 'pickup-marker-icon'
-                })}
-              >
-                <Popup>
-                  <div className="custom-popup">
-                    <strong>Điểm đón</strong>
-                    <p>Tọa độ: {pickupPosition.lat.toFixed(6)}, {pickupPosition.lng.toFixed(6)}</p>
-                  </div>
-                </Popup>
-              </Marker>
-            )}
-
-            {(destinationPosition && selectingLocation !== 'destination') && (
-              <Marker 
-                position={destinationPosition}
-                icon={new L.Icon({
-                  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-                  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                  iconSize: [30, 45],
-                  iconAnchor: [15, 45],
-                  popupAnchor: [1, -34],
-                  shadowSize: [41, 41],
-                  className: 'destination-marker-icon'
-                })}
-              >
-                <Popup>
-                  <div className="custom-popup">
-                    <strong>Điểm đến</strong>
-                    <p>Tọa độ: {destinationPosition.lat.toFixed(6)}, {destinationPosition.lng.toFixed(6)}</p>
-                  </div>
-                </Popup>
-              </Marker>
-            )}
+            <div 
+              className={`ride-type-card ${rideType === 'activity-based' ? 'selected' : ''}`}
+              onClick={() => handleRideTypeChange('activity-based')}
+            >
+              <div className="ride-type-icon">📅</div>
+              <div className="ride-type-details">
+                <h3>Activity-Based</h3>
+                <p>Match based on your schedule</p>
+              </div>
+            </div>
             
-            {pickupPosition && destinationPosition && (
-              <Polyline 
-                positions={[
-                  [pickupPosition.lat, pickupPosition.lng],
-                  [destinationPosition.lat, destinationPosition.lng]
-                ]}
-                color="#4e4376"
-                weight={4}
-                opacity={0.7}
-                dashArray="10, 10"
-              />
-            )}
-          </MapContainer>
+            <div 
+              className={`ride-type-card ${rideType === 'trajectory-based' ? 'selected' : ''}`}
+              onClick={() => handleRideTypeChange('trajectory-based')}
+            >
+              <div className="ride-type-icon">🗺️</div>
+              <div className="ride-type-details">
+                <h3>Profile & Trajectory</h3>
+                <p>Match with compatible drivers on similar routes</p>
+              </div>
+            </div>
+          </div>
+          
+          {rideType === 'activity-based' && (
+            <div className="ride-type-info">
+              <p>Activity-based ridesharing matches you with drivers based on your regular schedule.</p>
+              <Link to="/activity-schedule" className="setup-link">
+                Set up your activity schedule
+              </Link>
+            </div>
+          )}
+          
+          {rideType === 'trajectory-based' && (
+            <div className="ride-type-info">
+              <p>Profile & Trajectory matching finds drivers with similar routes and compatible preferences.</p>
+              <Link to="/trajectory-matching" className="setup-link">
+                Set up your routes and preferences
+              </Link>
+            </div>
+          )}
         </div>
 
-        <div className="ride-form-container">
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="pickup">Điểm đón</label>
-              <div className="location-input-group" ref={pickupInputRef}>
-                <input
-                  id="pickup"
-                  type="text"
-                  value={pickupLocation}
-                  onChange={handlePickupInputChange}
-                  placeholder="Nhập địa điểm đón"
-                  required
+        {rideType === 'standard' && (
+          <div className="standard-booking-section">
+            <h2>Trip Details</h2>
+            
+            <div className="map-section">
+              <MapContainer 
+                center={mapCenter} 
+                zoom={zoom} 
+                style={{ height: '300px', width: '100%', marginBottom: '20px' }}
+                whenCreated={mapInstance => {
+                  mapRef.current = mapInstance;
+                }}
+              >
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
                 />
-                <button 
-                  type="button" 
-                  className="map-select-btn"
-                  onClick={() => handleMapSelection('pickup')}
-                >
-                  Chọn trên bản đồ
-                </button>
                 
-                {showPickupSuggestions && pickupSuggestions.length > 0 && (
-                  <div className="location-suggestions">
-                    {pickupSuggestions.map((suggestion, index) => (
-                      <div 
-                        key={index} 
-                        className="suggestion-item"
-                        onClick={() => handlePickupSuggestionClick(suggestion)}
-                      >
-                        <div className="suggestion-name">{suggestion.name}</div>
-                        <div className="suggestion-address">{suggestion.address}</div>
-                      </div>
-                    ))}
-                  </div>
+                {selectingLocation === 'pickup' && (
+                  <LocationMarker 
+                    position={pickupPosition} 
+                    setPosition={setPickupPosition} 
+                    markerType="pickup" 
+                  />
                 )}
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="destination">Điểm đến</label>
-              <div className="location-input-group" ref={destinationInputRef}>
-                <input
-                  id="destination"
-                  type="text"
-                  value={destination}
-                  onChange={handleDestinationInputChange}
-                  placeholder="Nhập điểm đến"
-                  required
-                />
-                <button 
-                  type="button" 
-                  className="map-select-btn"
-                  onClick={() => handleMapSelection('destination')}
-                >
-                  Chọn trên bản đồ
-                </button>
                 
-                {showDestinationSuggestions && destinationSuggestions.length > 0 && (
-                  <div className="location-suggestions">
-                    {destinationSuggestions.map((suggestion, index) => (
-                      <div 
-                        key={index} 
-                        className="suggestion-item"
-                        onClick={() => handleDestinationSuggestionClick(suggestion)}
-                      >
-                        <div className="suggestion-name">{suggestion.name}</div>
-                        <div className="suggestion-address">{suggestion.address}</div>
-                      </div>
-                    ))}
-                  </div>
+                {selectingLocation === 'dropoff' && (
+                  <LocationMarker 
+                    position={dropoffPosition} 
+                    setPosition={setDropoffPosition} 
+                    markerType="dropoff" 
+                  />
                 )}
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="departure-time">Thời gian khởi hành</label>
-              <input
-                id="departure-time"
-                type="datetime-local"
-                value={departureTime}
-                onChange={(e) => setDepartureTime(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Loại chuyến đi</label>
-              <div className="ride-type-options">
-                <label className="ride-type-option">
-                  <input
-                    type="radio"
-                    name="rideType"
-                    value="activity"
-                    checked={rideType === 'activity'}
-                    onChange={() => setRideType('activity')}
+                
+                {pickupPosition && selectingLocation !== 'pickup' && (
+                  <Marker 
+                    position={pickupPosition}
+                    icon={new L.Icon({
+                      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                      iconSize: [25, 41],
+                      iconAnchor: [12, 41],
+                      popupAnchor: [1, -34],
+                      shadowSize: [41, 41]
+                    })}
+                  >
+                    <Popup>Pickup point</Popup>
+                  </Marker>
+                )}
+                
+                {dropoffPosition && selectingLocation !== 'dropoff' && (
+                  <Marker 
+                    position={dropoffPosition}
+                    icon={new L.Icon({
+                      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                      iconSize: [25, 41],
+                      iconAnchor: [12, 41],
+                      popupAnchor: [1, -34],
+                      shadowSize: [41, 41]
+                    })}
+                  >
+                    <Popup>Dropoff point</Popup>
+                  </Marker>
+                )}
+                
+                {pickupPosition && dropoffPosition && (
+                  <Polyline 
+                    positions={[
+                      [pickupPosition.lat, pickupPosition.lng],
+                      [dropoffPosition.lat, dropoffPosition.lng]
+                    ]}
+                    color="#4e4376"
+                    weight={3}
+                    opacity={0.7}
                   />
-                  <div>
-                    <h4>Đi chung theo hoạt động</h4>
-                    <p>Ghép chuyến dựa trên lịch trình giống nhau, tiết kiệm chi phí và thời gian.</p>
-                  </div>
-                </label>
-
-                <label className="ride-type-option">
-                  <input
-                    type="radio"
-                    name="rideType"
-                    value="profile"
-                    checked={rideType === 'profile'}
-                    onChange={() => setRideType('profile')}
-                  />
-                  <div>
-                    <h4>Đi chung theo hồ sơ</h4>
-                    <p>Ghép chuyến dựa trên sở thích, tính cách và dân cư phù hợp. Giảm 10% giá.</p>
-                  </div>
-                </label>
-              </div>
+                )}
+              </MapContainer>
+              
+              {selectingLocation && (
+                <div className="map-instructions">
+                  <p>
+                    {selectingLocation === 'pickup' 
+                      ? 'Click on the map to set your pickup location' 
+                      : 'Click on the map to set your destination location'}
+                  </p>
+                  <button 
+                    className="done-btn"
+                    onClick={handleSaveLocation}
+                  >
+                    Done
+                  </button>
+                </div>
+              )}
             </div>
-
-            {rideType === 'profile' && (
+            
+            <form onSubmit={handleGetEstimate}>
               <div className="form-group">
-                <label>Tùy chọn ghép chuyến</label>
-                <p>Chọn tùy chọn để ghép đôi với những người đi chung phù hợp với bạn hơn</p>
+                <label htmlFor="pickupLocation">Pickup Location</label>
+                <div className="location-input-group">
+                  <input 
+                    type="text"
+                    id="pickupLocation"
+                    value={pickupLocation}
+                    onChange={(e) => setPickupLocation(e.target.value)}
+                    placeholder="Enter pickup address"
+                    required
+                  />
+                  <button 
+                    type="button"
+                    className="map-select-btn"
+                    onClick={() => handleLocationSelect('pickup')}
+                  >
+                    Select on Map
+                  </button>
+                </div>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="dropoffLocation">Dropoff Location</label>
+                <div className="location-input-group">
+                  <input 
+                    type="text"
+                    id="dropoffLocation"
+                    value={dropoffLocation}
+                    onChange={(e) => setDropoffLocation(e.target.value)}
+                    placeholder="Enter destination address"
+                    required
+                  />
+                  <button 
+                    type="button"
+                    className="map-select-btn"
+                    onClick={() => handleLocationSelect('dropoff')}
+                  >
+                    Select on Map
+                  </button>
+                </div>
+              </div>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="pickupTime">Pickup Time</label>
+                  <input 
+                    type="datetime-local"
+                    id="pickupTime"
+                    value={pickupTime}
+                    onChange={(e) => setPickupTime(e.target.value)}
+                    min={new Date().toISOString().slice(0, 16)}
+                  />
+                </div>
                 
-                <div className="profile-preferences">
-                  <div className="form-group">
-                    <label htmlFor="gender">Giới tính</label>
-                    <select 
-                      id="gender" 
-                      name="gender" 
-                      value={preferences.gender}
-                      onChange={handlePreferenceChange}
-                    >
-                      <option value="">Không quan trọng</option>
-                      <option value="male">Nam</option>
-                      <option value="female">Nữ</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="ageGroup">Độ tuổi</label>
-                    <select 
-                      id="ageGroup" 
-                      name="ageGroup"
-                      value={preferences.ageGroup}
-                      onChange={handlePreferenceChange}
-                    >
-                      <option value="">Không quan trọng</option>
-                      <option value="18-25">18-25</option>
-                      <option value="26-35">26-35</option>
-                      <option value="36-50">36-50</option>
-                      <option value="50+">Trên 50</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="profile-preferences">
-                  <label className="profile-preference-option">
-                    <input 
-                      type="checkbox" 
-                      name="smoking"
-                      checked={preferences.smoking}
-                      onChange={handlePreferenceChange}
-                    />
-                    Không hút thuốc
-                  </label>
-
-                  <label className="profile-preference-option">
-                    <input 
-                      type="checkbox" 
-                      name="pets"
-                      checked={preferences.pets}
-                      onChange={handlePreferenceChange}
-                    />
-                    Cho phép thú cưng
-                  </label>
-
-                  <label className="profile-preference-option">
-                    <input 
-                      type="checkbox" 
-                      name="music"
-                      checked={preferences.music}
-                      onChange={handlePreferenceChange}
-                    />
-                    Thích nghe nhạc
-                  </label>
-
-                  <label className="profile-preference-option">
-                    <input 
-                      type="checkbox" 
-                      name="conversation"
-                      checked={preferences.conversation}
-                      onChange={handlePreferenceChange}
-                    />
-                    Thích trò chuyện
-                  </label>
+                <div className="form-group">
+                  <label htmlFor="numberOfPassengers">Passengers</label>
+                  <select 
+                    id="numberOfPassengers"
+                    value={numberOfPassengers}
+                    onChange={(e) => setNumberOfPassengers(Number(e.target.value))}
+                  >
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                  </select>
                 </div>
               </div>
-            )}
-
-            {estimatedPrice && (
-              <div className="price-estimate">
-                <h3>Ước tính chi phí</h3>
-                <p>Giá cơ bản: {estimatedPrice.basePrice.toLocaleString()} VND</p>
-                {rideType === 'profile' && (
-                  <p className="discount-note">Giảm 10% khi đi theo hồ sơ: -{(estimatedPrice.basePrice * 0.1).toLocaleString()} VND</p>
-                )}
-                <div className="price">
-                  {estimatedPrice.finalPrice.toLocaleString()} VND
+              
+              <button 
+                type="submit" 
+                className="estimate-btn"
+                disabled={loadingEstimate}
+              >
+                {loadingEstimate ? 'Getting Estimate...' : 'Get Estimate'}
+              </button>
+            </form>
+            
+            {estimateDetails && (
+              <div className="estimate-details">
+                <h3>Ride Estimate</h3>
+                <div className="estimate-info">
+                  <div className="estimate-item">
+                    <span className="estimate-label">Distance</span>
+                    <span className="estimate-value">{estimateDetails.distance} km</span>
+                  </div>
+                  
+                  <div className="estimate-item">
+                    <span className="estimate-label">Duration</span>
+                    <span className="estimate-value">{Math.round(estimateDetails.duration / 60)} min</span>
+                  </div>
+                  
+                  <div className="estimate-item">
+                    <span className="estimate-label">Price</span>
+                    <span className="estimate-value">{estimateDetails.price.toLocaleString()} VND</span>
+                  </div>
                 </div>
-                <p>Chi phí có thể thay đổi tùy thuộc vào điều kiện thực tế</p>
+                
+                <button 
+                  className="book-btn"
+                  onClick={handleBookRide}
+                  disabled={bookingInProgress || !pickupTime}
+                >
+                  {bookingInProgress ? 'Booking...' : 'Book Now'}
+                </button>
               </div>
             )}
+          </div>
+        )}
 
-            <button type="submit" className="book-ride-btn">
-              Đặt chuyến
-            </button>
-          </form>
-        </div>
+        {rideType === 'trajectory-based' && (
+          <div className="trajectory-booking-section">
+            <h2>Route-Based Matching</h2>
+            
+            {userTrajectories.length === 0 ? (
+              <div className="empty-state">
+                <p>You haven't set up any frequent routes yet.</p>
+                <div className="trajectory-actions">
+                  <Link to="/trajectory-matching" className="setup-link">
+                    Set up your routes and preferences
+                  </Link>
+                  <Link to="/trajectory-matching?addRoute=true" className="add-route-btn">
+                    + Add New Route
+                  </Link>
+                </div>
+                <p className="help-text">Adding your regular routes helps us find the best ride matches based on your travel patterns</p>
+              </div>
+            ) : (
+              <>
+                <div className="map-section">
+                  <MapContainer 
+                    center={mapCenter} 
+                    zoom={zoom} 
+                    style={{ height: '300px', width: '100%', marginBottom: '20px' }}
+                    whenCreated={mapInstance => {
+                      mapRef.current = mapInstance;
+                    }}
+                  >
+                    <TileLayer
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                    />
+                    
+                    {pickupPosition && (
+                      <Marker 
+                        position={pickupPosition}
+                        icon={new L.Icon({
+                          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                          iconSize: [25, 41],
+                          iconAnchor: [12, 41],
+                          popupAnchor: [1, -34],
+                          shadowSize: [41, 41]
+                        })}
+                      >
+                        <Popup>Starting point</Popup>
+                      </Marker>
+                    )}
+                    
+                    {dropoffPosition && (
+                      <Marker 
+                        position={dropoffPosition}
+                        icon={new L.Icon({
+                          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                          iconSize: [25, 41],
+                          iconAnchor: [12, 41],
+                          popupAnchor: [1, -34],
+                          shadowSize: [41, 41]
+                        })}
+                      >
+                        <Popup>Destination point</Popup>
+                      </Marker>
+                    )}
+                    
+                    {pickupPosition && dropoffPosition && (
+                      <Polyline 
+                        positions={[
+                          [pickupPosition.lat, pickupPosition.lng],
+                          [dropoffPosition.lat, dropoffPosition.lng]
+                        ]}
+                        color="#4e4376"
+                        weight={3}
+                        opacity={0.7}
+                      />
+                    )}
+                  </MapContainer>
+                </div>
+                
+                <form className="trajectory-form">
+                  <div className="form-group">
+                    <label htmlFor="trajectory">Select Your Route</label>
+                    <select
+                      id="trajectory"
+                      value={selectedTrajectory ? selectedTrajectory.id : ''}
+                      onChange={(e) => handleTrajectorySelect(e.target.value)}
+                    >
+                      <option value="">-- Select a route --</option>
+                      {userTrajectories.map(trajectory => (
+                        <option key={trajectory.id} value={trajectory.id}>
+                          {trajectory.name} ({trajectory.origin_location} to {trajectory.destination_location})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label htmlFor="pickupTime">Pickup Time</label>
+                    <input 
+                      type="datetime-local"
+                      id="pickupTime"
+                      value={pickupTime}
+                      onChange={(e) => setPickupTime(e.target.value)}
+                      min={new Date().toISOString().slice(0, 16)}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="form-group">
+                    <label htmlFor="numberOfPassengers">Passengers</label>
+                    <select 
+                      id="numberOfPassengers"
+                      value={numberOfPassengers}
+                      onChange={(e) => setNumberOfPassengers(Number(e.target.value))}
+                    >
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4">4</option>
+                    </select>
+                  </div>
+                </form>
+                
+                {loading ? (
+                  <div className="loading-state">Finding compatible drivers...</div>
+                ) : compatibleDrivers.length > 0 && selectedTrajectory ? (
+                  <div className="compatible-drivers">
+                    <h3>Compatible Drivers</h3>
+                    <p>Select a driver that matches your preferences</p>
+                    
+                    <div className="driver-list">
+                      {compatibleDrivers.map(driver => (
+                        <div 
+                          key={driver.id} 
+                          className={`driver-card ${selectedDriver && selectedDriver.id === driver.id ? 'selected' : ''}`}
+                          onClick={() => handleDriverSelect(driver.id)}
+                        >
+                          <div className="driver-avatar">
+                            {driver.profile_pic ? (
+                              <img src={driver.profile_pic} alt={`${driver.name}`} />
+                            ) : (
+                              <div className="avatar-placeholder">
+                                {driver.name ? driver.name.charAt(0).toUpperCase() : 'D'}
+                              </div>
+                            )}
+                          </div>
+                          <div className="driver-info">
+                            <h4>{driver.name}</h4>
+                            <div className="driver-details">
+                              <span className="rating">⭐ {driver.rating || '4.5'}</span>
+                              <span className="match-score">
+                                {driver.match_score || '95'}% match
+                              </span>
+                            </div>
+                            <div className="driver-preferences">
+                              {driver.preferences?.smoking && <span className="pref-tag">🚬</span>}
+                              {driver.preferences?.pets && <span className="pref-tag">🐾</span>}
+                              {driver.preferences?.music && <span className="pref-tag">🎵</span>}
+                              {driver.preferences?.conversation && <span className="pref-tag">💬</span>}
+                            </div>
+                            <div className="price-estimate">
+                              ~{driver.price?.toLocaleString() || '120,000'} VND
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <button 
+                      className="book-btn"
+                      onClick={handleBookTrajectoryRide}
+                      disabled={bookingInProgress || !selectedDriver || !pickupTime}
+                    >
+                      {bookingInProgress ? 'Booking...' : 'Book Now'}
+                    </button>
+                  </div>
+                ) : selectedTrajectory ? (
+                  <div className="no-drivers-found">
+                    <p>No compatible drivers found at the moment. Try adjusting your preferences or selecting a different route.</p>
+                    <Link to="/trajectory-matching" className="setup-link">
+                      Update your preferences
+                    </Link>
+                  </div>
+                ) : null}
+              </>
+            )}
+          </div>
+        )}
+        
+        {rideType === 'activity-based' && (
+          <div className="activity-booking-section">
+            <h2>Activity-Based Matching</h2>
+            <p>This feature will match you with drivers based on your activity schedule.</p>
+            <Link to="/activity-schedule" className="setup-link">
+              Set up your activity schedule
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -16,6 +16,8 @@ const vehicleRoutes = require('./routes/vehicle.routes');
 const rideRoutes = require('./routes/ride.routes');
 const paymentRoutes = require('./routes/payment.routes');
 const activityRoutes = require('./routes/activity.routes');
+const abraRoutes = require('./routes/abra.routes');
+const trajectoryRoutes = require('./routes/trajectory.routes');
 
 // Create Express app
 const app = express();
@@ -48,6 +50,8 @@ app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/rides', rideRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/activities', activityRoutes);
+app.use('/api/abra', abraRoutes);
+app.use('/api/trajectory', trajectoryRoutes);
 
 // Root route
 app.get('/', (req, res) => {

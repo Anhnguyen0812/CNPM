@@ -1,0 +1,580 @@
+.activity-schedule-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.page-header h1 {
+  font-size: 32px;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.page-header p {
+  font-size: 16px;
+  color: #666;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #4e4376;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.schedule-container {
+  display: flex;
+  min-height: 600px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.schedules-sidebar {
+  width: 300px;
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-right: 1px solid #e9ecef;
+}
+
+.schedules-sidebar h2 {
+  font-size: 20px;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.schedule-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px 0;
+}
+
+.schedule-list li {
+  padding: 12px 15px;
+  margin-bottom: 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.schedule-list li:hover {
+  background-color: #f1f3f5;
+}
+
+.schedule-list li.active {
+  background-color: #4e4376;
+  color: #fff;
+}
+
+.schedule-list li.active .schedule-status {
+  color: #e0e0e0;
+}
+
+.schedule-name {
+  font-weight: 600;
+}
+
+.schedule-status {
+  font-size: 12px;
+  color: #6c757d;
+  background-color: #e9ecef;
+  padding: 3px 8px;
+  border-radius: 10px;
+}
+
+.no-schedules {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.no-schedules p {
+  margin-bottom: 20px;
+  color: #6c757d;
+}
+
+.add-schedule-btn, .find-matches-btn, .generate-trips-btn {
+  width: 100%;
+  padding: 10px;
+  background-color: #4e4376;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-bottom: 10px;
+  transition: background-color 0.2s;
+}
+
+.add-schedule-btn:hover, .find-matches-btn:hover, .generate-trips-btn:hover {
+  background-color: #372f54;
+}
+
+.add-schedule-form {
+  background-color: #fff;
+  padding: 15px;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.add-schedule-form h3 {
+  font-size: 18px;
+  margin-bottom: 15px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #495057;
+}
+
+.form-group input, .form-group select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+}
+
+.submit-btn, .cancel-btn {
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.submit-btn {
+  background-color: #4e4376;
+  color: white;
+  border: none;
+}
+
+.cancel-btn {
+  background-color: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #ced4da;
+}
+
+.schedule-actions {
+  margin-top: 20px;
+}
+
+.activities-main {
+  flex: 1;
+  padding: 20px;
+  background-color: #fff;
+  overflow-y: auto;
+}
+
+.activities-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.activities-header h2 {
+  font-size: 22px;
+  color: #333;
+}
+
+.add-activity-btn {
+  padding: 8px 15px;
+  background-color: #4e4376;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.no-activities, .no-data, .no-schedule-selected {
+  text-align: center;
+  padding: 50px 0;
+  color: #6c757d;
+}
+
+.activity-card {
+  background-color: #fff;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  margin-bottom: 15px;
+  overflow: hidden;
+}
+
+.activity-header {
+  background-color: #f8f9fa;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.activity-header h4 {
+  margin: 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.activity-days {
+  font-size: 12px;
+  background-color: #e9ecef;
+  padding: 3px 8px;
+  border-radius: 10px;
+  color: #495057;
+}
+
+.activity-body {
+  padding: 15px;
+}
+
+.activity-time {
+  margin-bottom: 10px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.activity-location {
+  display: flex;
+  align-items: flex-start;
+}
+
+.location-icon {
+  margin-right: 10px;
+  font-size: 18px;
+}
+
+.location-address {
+  margin-bottom: 5px;
+}
+
+.location-flexible {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.activity-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 15px;
+  background-color: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+}
+
+.alt-locations-btn, .delete-activity-btn {
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-left: 10px;
+}
+
+.alt-locations-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+}
+
+.delete-activity-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+}
+
+.add-activity-form {
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.add-activity-form h3 {
+  font-size: 18px;
+  margin-bottom: 20px;
+}
+
+.form-row {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+.location-input-group {
+  display: flex;
+  gap: 10px;
+}
+
+.location-input-group input {
+  flex: 1;
+}
+
+.map-select-btn {
+  padding: 10px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.coordinates {
+  display: block;
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 5px;
+}
+
+.location-selector {
+  margin-bottom: 20px;
+}
+
+.map-container {
+  height: 300px;
+  margin-bottom: 15px;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.location-selector-actions {
+  display: flex;
+  justify-content: space-between;
+}
+
+.select-location-btn {
+  padding: 10px 15px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.select-location-btn:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.checkbox-label input {
+  margin-right: 10px;
+  width: auto;
+}
+
+.trip-chains-container, .matches-container {
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.trip-chains-container h3, .matches-container h3 {
+  font-size: 20px;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.trip-chain-card, .match-card {
+  background-color: #fff;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  margin-bottom: 15px;
+  overflow: hidden;
+}
+
+.trip-chain-header, .match-header {
+  background-color: #f8f9fa;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.trip-chain-header h4, .match-header h4 {
+  margin: 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.chain-date, .match-score {
+  font-size: 14px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  background-color: #e9ecef;
+  color: #495057;
+}
+
+.match-score {
+  background-color: #4e4376;
+  color: white;
+}
+
+.trip-chain-body, .match-body {
+  padding: 15px;
+}
+
+.chain-location {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 15px;
+}
+
+.location-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 10px;
+  margin-top: 5px;
+}
+
+.location-dot.origin {
+  background-color: #28a745;
+}
+
+.location-dot.destination {
+  background-color: #dc3545;
+}
+
+.chain-arrow {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0;
+  color: #6c757d;
+  font-size: 20px;
+}
+
+.match-activity {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.activity-icon {
+  margin-right: 10px;
+  font-size: 24px;
+}
+
+.match-trip-chain {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 5px;
+}
+
+.match-trip-chain h5 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #495057;
+}
+
+.trip-details {
+  margin-bottom: 10px;
+}
+
+.trip-times {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 10px 0;
+  color: #6c757d;
+  font-weight: 600;
+}
+
+.trip-metrics {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid #dee2e6;
+  padding-top: 10px;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.metric-label {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.metric-value {
+  font-weight: 600;
+  color: #495057;
+}
+
+.match-actions {
+  padding: 15px;
+  background-color: #f8f9fa;
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid #e9ecef;
+}
+
+.book-match-btn {
+  padding: 10px 20px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.book-match-btn:hover {
+  background-color: #218838;
+}
