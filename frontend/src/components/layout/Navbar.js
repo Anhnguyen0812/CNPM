@@ -73,16 +73,34 @@ const Navbar = () => {
               
               {/* Customer specific links */}
               {currentUser?.role === 'customer' && (
-                <Link to="/book-ride" className={isActive('/book-ride')} style={{'--i': 2}}>
-                  <i className="fas fa-car"></i>Đặt xe
-                </Link>
+                <>
+                  <Link to="/book-ride" className={isActive('/book-ride')} style={{'--i': 2}}>
+                    <i className="fas fa-car"></i>Đặt xe
+                  </Link>
+                  
+                  <div className="nav-dropdown">
+                    <button className="nav-dropdown-toggle">
+                      <i className="fas fa-users"></i>Đi chung
+                      <i className="fas fa-chevron-down"></i>
+                    </button>
+                    <div className="nav-dropdown-menu">
+                      <Link to="/abra" className={isActive('/abra')}>
+                        <i className="fas fa-calendar-alt"></i>Theo hoạt động
+                      </Link>
+                      <Link to="/trajectory-matching" className={isActive('/trajectory-matching')}>
+                        <i className="fas fa-road"></i>Theo quỹ đạo
+                      </Link>
+                      <Link to="/trajectory-rides" className={isActive('/trajectory-rides')}>
+                        <i className="fas fa-car-side"></i>Chuyến đi quỹ đạo
+                      </Link>
+                    </div>
+                  </div>
+                </>
               )}
 
               <Link to="/payment-methods" className={isActive('/payment-methods')} style={{'--i': 3}}>
                 <i className="fas fa-credit-card"></i>Thanh toán
               </Link>
-              
-              
               
               {/* Driver specific links */}
               {currentUser?.role === 'driver' && (
@@ -93,6 +111,21 @@ const Navbar = () => {
                   <Link to="/vehicles" className={isActive('/vehicles')} style={{'--i': 4}}>
                     <i className="fas fa-car-alt"></i>Xe của tôi
                   </Link>
+                  
+                  <div className="nav-dropdown">
+                    <button className="nav-dropdown-toggle">
+                      <i className="fas fa-users"></i>Chuyến ghép đôi
+                      <i className="fas fa-chevron-down"></i>
+                    </button>
+                    <div className="nav-dropdown-menu">
+                      <Link to="/abra" className={isActive('/abra')}>
+                        <i className="fas fa-calendar-alt"></i>Theo hoạt động
+                      </Link>
+                      <Link to="/trajectory-rides" className={isActive('/trajectory-rides')}>
+                        <i className="fas fa-car-side"></i>Theo quỹ đạo
+                      </Link>
+                    </div>
+                  </div>
                 </>
               )}
               

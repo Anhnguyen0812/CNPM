@@ -19,6 +19,10 @@ import VehiclesPage from './pages/driver/VehiclesPage';
 import PaymentMethodsPage from './pages/payment/PaymentMethodsPage';
 import DriverDashboardPage from './pages/driver/DriverDashboardPage';
 import NotFoundPage from './pages/NotFoundPage';
+import AbraPage from './pages/ride/AbraPage';
+import ActivitySchedulePage from './pages/ride/ActivitySchedulePage';
+import TrajectoryMatchingPage from './pages/ride/TrajectoryMatchingPage';
+import TrajectoryRidesPage from './pages/ride/TrajectoryRidesPage';
 
 // Protected route component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -72,6 +76,14 @@ function App() {
           <Route path="/ride-history" element={<ProtectedRoute><RideHistoryPage /></ProtectedRoute>} />
           <Route path="/active-ride/:rideId" element={<ProtectedRoute><ActiveRidePage /></ProtectedRoute>} />
           <Route path="/payment-methods" element={<ProtectedRoute><PaymentMethodsPage /></ProtectedRoute>} />
+          
+          {/* Activity-Based Ride Sharing routes */}
+          <Route path="/abra" element={<ProtectedRoute><AbraPage /></ProtectedRoute>} />
+          <Route path="/activities" element={<ProtectedRoute><ActivitySchedulePage /></ProtectedRoute>} />
+          
+          {/* Trajectory-Based Ride Sharing routes */}
+          <Route path="/trajectory-matching" element={<ProtectedRoute><TrajectoryMatchingPage /></ProtectedRoute>} />
+          <Route path="/trajectory-rides" element={<ProtectedRoute><TrajectoryRidesPage /></ProtectedRoute>} />
           
           {/* Driver routes */}
           <Route path="/vehicles" element={<ProtectedRoute allowedRoles={['driver']}><VehiclesPage /></ProtectedRoute>} />
