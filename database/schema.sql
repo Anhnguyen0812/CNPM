@@ -60,6 +60,13 @@ CREATE TABLE IF NOT EXISTS activity_chains (
     user_id INT NOT NULL,
     name VARCHAR(255),          -- Optional name for the chain (e.g., "Daily Commute", "Weekend Trip")
     timestamp BIGINT NOT NULL,
+    is_driver TINYINT(1),       -- Indicates if the user is a driver for this activity chain
+    is_passenger TINYINT(1),    -- Indicates if the user is a passenger for this activity chain
+    vehicle_details TEXT,       -- JSON or serialized details about the vehicle used
+    passenger_preferences TEXT, -- JSON or serialized passenger preferences
+    matched_driver_chain_id INT, -- Reference to a matched driver's activity chain
+    match_timestamp BIGINT,     -- When the match was made
+    group_id INT,               -- Reference to a group this chain belongs to
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -77,9 +84,11 @@ CREATE TABLE IF NOT EXISTS activities (
     end_lon DOUBLE,
     duration BIGINT NOT NULL,       -- Duration of the activity in seconds or minutes
     type INT,                     -- 0 for fixed location, 1 for flexible location (Consider ENUM or separate activity_types table)
-    -- preferred_categories VARCHAR(255), -- If type is flexible, e.g., "restaurant,cafe"
     sequence_order INT NOT NULL DEFAULT 0, -- To maintain order within an activity_chain
     timestamp BIGINT NOT NULL,
+    is_flexible TINYINT(1),       -- Indicates if the activity location is flexible
+    poi_category VARCHAR(100),    -- Point of interest category if the activity is flexible
+    matched_activity_id INT,      -- Reference to a matched activity
     FOREIGN KEY (activity_chain_id) REFERENCES activity_chains(id) ON DELETE CASCADE,
     INDEX (start_lat, start_lon),
     INDEX (end_lat, end_lon)
