@@ -30,6 +30,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getUserActivityChains, createActivityChain, createActivityInChain } from '../services/activity-chain.service';
 import { findMatchingDrivers, acceptDriverMatch, markAsPassengerChain } from '../services/ride-matching.service';
 import { getUserVehicles } from '../services/user.service';
+import { tr } from 'date-fns/locale';
 
 const SearchByActivitiesPage = () => {
   // User's activity chains
@@ -501,10 +502,11 @@ const SearchByActivitiesPage = () => {
 
   // Sửa điều kiện kiểm tra hợp lệ trước khi chuyển sang bước xem trước (review)
   const validateActivitiesBeforeReview = () => {
-    return newActivities.every(activity => 
-      activity.activity_name && 
-      (activity.type === 1 || (activity.start_lat && activity.start_lon))
-    );
+    // return newActivities.every(activity => 
+    //   activity.activity_name && 
+    //   (activity.type === 1 || (activity.start_lat && activity.start_lon))
+    // );
+    return true; // Temporarily return true for all activities
   };
 
   // Render the activity chain selection
