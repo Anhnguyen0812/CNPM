@@ -28,7 +28,5 @@ router.delete('/me/activities/:activityId', activityController.deleteActivity);
 // Ride-sharing routes
 router.post('/me/activity-chains/:chainId/driver', activityChainController.markAsDriverChain);
 router.post('/me/activity-chains/:chainId/passenger', activityChainController.markAsPassengerChain);
-router.get('/me/passenger/matches', activityChainController.findMatchingDrivers);
-router.post('/me/passenger/accept-match', activityChainController.acceptDriverMatch);
 
 module.exports = router;

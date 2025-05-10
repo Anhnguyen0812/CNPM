@@ -27,8 +27,8 @@ import LocationSelector from '../components/map/LocationSelector';
 import MapDisplay from '../components/map/MapDisplay';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getUserActivityChains, findMatchingDrivers, acceptDriverMatch, 
-  markAsPassengerChain, createActivityChain, createActivityInChain } from '../services/activity-chain.service';
+import { getUserActivityChains, createActivityChain, createActivityInChain } from '../services/activity-chain.service';
+import { findMatchingDrivers, acceptDriverMatch, markAsPassengerChain } from '../services/ride-matching.service';
 import { getUserVehicles } from '../services/user.service';
 
 const SearchByActivitiesPage = () => {

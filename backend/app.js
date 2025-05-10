@@ -7,6 +7,7 @@ const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
 const vehicleRoutes = require('./routes/vehicle.routes');
 const activityChainRoutes = require('./routes/activity-chain.routes');
+const rideMatchingRoutes = require('./routes/ride-matching.routes');
 const groupRoutes = require('./routes/group.routes');
 const bookingRoutes = require('./routes/booking.routes');
 
@@ -37,6 +38,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/activities', activityChainRoutes);
+app.use('/api/ride-matching', rideMatchingRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/bookings', bookingRoutes);
 

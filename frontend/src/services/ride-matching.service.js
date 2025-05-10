@@ -8,7 +8,7 @@ import api from './api.service';
  */
 export const markAsDriverChain = async (chainId, vehicleDetails) => {
   try {
-    const response = await api.post(`/me/activity-chains/${chainId}/driver`, {
+    const response = await api.post(`/ride-matching/chains/${chainId}/driver`, {
       vehicleDetails
     });
     return response.data.data;
@@ -25,7 +25,7 @@ export const markAsDriverChain = async (chainId, vehicleDetails) => {
  */
 export const markAsPassengerChain = async (chainId, preferences) => {
   try {
-    const response = await api.post(`/me/activity-chains/${chainId}/passenger`, {
+    const response = await api.post(`/ride-matching/chains/${chainId}/passenger`, {
       preferences
     });
     return response.data.data;
@@ -59,12 +59,13 @@ export const findMatchingDrivers = async (chainId, options = {}) => {
     
     // Extract timeWindow and maxDistance for variable naming consistency
     const { timeWindow, maxDistance } = searchOptions;
+      console.log('Searching with ABRA options:', searchOptions);
     
-    console.log('Searching with ABRA options:', searchOptions);
-    
-    const response = await api.get(`/me/passenger/matches`, {
-      params: searchOptions,
-      chainId
+    const response = await api.get(`/ride-matching/passenger/matches`, {
+      params: {
+        ...searchOptions,
+        chainId
+      }
     });
     
     // Auto-retry with widened parameters if no matches found
@@ -108,7 +109,7 @@ export const findMatchingDrivers = async (chainId, options = {}) => {
  */
 export const acceptDriverMatch = async (passengerChainId, driverChainId) => {
   try {
-    const response = await api.post(`/me/passenger/accept-match`, {
+    const response = await api.post(`/ride-matching/passenger/accept-match`, {
       passengerChainId,
       driverChainId
     });
